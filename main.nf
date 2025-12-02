@@ -2,15 +2,13 @@
 nextflow.enable.dsl=2
 
 def chipfilter_output = params.chipfilter_output ?: "chipfilter_output"
-
-def MAPQ = params.mapq_threshold ?: 10
-
+def MAPQ             = params.mapq_threshold ?: 10
 
 process filter_multimappers {
   tag "${bam.simpleName}"
   stageInMode  'symlink'
   stageOutMode 'move'
-
+IN
   publishDir "${params.project_folder}/${chipfilter_output}", mode: 'copy'
 
   input:
@@ -25,11 +23,9 @@ process filter_multimappers {
   set -eux
 
   samtools view -b -q ${MAPQ} -o ${bam.simpleName}.nomulti.bam ${bam}
-
   samtools index ${bam.simpleName}.nomulti.bam
   """
 }
-
 
 process filter_blacklist {
   tag "${bam.simpleName}"
@@ -53,7 +49,6 @@ process filter_blacklist {
   set -eux
 
   bedtools intersect -v -abam ${bam} -b ${params.blacklist_bed} > ${bam.simpleName}.noblack.bam
-
   samtools index ${bam.simpleName}.noblack.bam
   """
 }
@@ -76,13 +71,11 @@ process remove_mito {
   """
   set -eux
 
-  keep_chrs=\$(samtools idxstats ${bam} | cut -f1 | egrep -v '^(chrM|MT|\*)\$' | tr '\\n' ' ')
+  keep_chrs=\$(samtools idxstats ${bam} | cut -f1 | egrep -v '^(chrM|MT|\\*)\$' | tr '\\n' ' ')
   samtools view -b ${bam} \$keep_chrs > ${bam.simpleName}.clean.bam
-
   samtools index ${bam.simpleName}.clean.bam
   """
 }
-
 
 workflow {
 
@@ -97,7 +90,7 @@ workflow {
   def nomulti = filter_multimappers(bams)
 
   def noblack = nomulti
-  if( params.blacklist_bed ) {
+  if ( params.blacklist_bed ) {
     noblack = filter_blacklist(nomulti)
   }
 

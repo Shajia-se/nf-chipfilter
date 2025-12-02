@@ -2,13 +2,13 @@
 nextflow.enable.dsl=2
 
 def chipfilter_output = params.chipfilter_output ?: "chipfilter_output"
-def MAPQ             = params.mapq_threshold ?: 10
+def MAPQ             = params.mapq_threshold   ?: 10
 
 process filter_multimappers {
   tag "${bam.simpleName}"
   stageInMode  'symlink'
   stageOutMode 'move'
-IN
+
   publishDir "${params.project_folder}/${chipfilter_output}", mode: 'copy'
 
   input:
@@ -16,7 +16,6 @@ IN
 
   output:
     path "${bam.simpleName}.nomulti.bam"
-    path "${bam.simpleName}.nomulti.bam.bai"
 
   script:
   """
@@ -39,10 +38,9 @@ process filter_blacklist {
 
   output:
     path "${bam.simpleName}.noblack.bam"
-    path "${bam.simpleName}.noblack.bam.bai"
 
   when:
-    params.blacklist_bed
+    params.blacklist_bed  
 
   script:
   """
@@ -65,7 +63,6 @@ process remove_mito {
 
   output:
     path "${bam.simpleName}.clean.bam"
-    path "${bam.simpleName}.clean.bam.bai"
 
   script:
   """
@@ -81,18 +78,16 @@ workflow {
 
   def outdir = "${params.project_folder}/${chipfilter_output}"
 
-  def bams = Channel
+  Channel
     .fromPath("${params.chipfilter_raw_bam}/*.markdup.bam")
     .filter { bam ->
       ! file("${outdir}/${bam.simpleName}.clean.bam.bai").exists()
     }
+    .set { bam_ch }
 
-  def nomulti = filter_multimappers(bams)
+  def nomulti_ch = filter_multimappers(bam_ch)
 
-  def noblack = nomulti
-  if ( params.blacklist_bed ) {
-    noblack = filter_blacklist(nomulti)
-  }
+  def noblack_ch = params.blacklist_bed ? filter_blacklist(nomulti_ch) : nomulti_ch
 
-  remove_mito(noblack)
+  remove_mito(noblack_ch)
 }

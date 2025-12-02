@@ -15,7 +15,8 @@ process filter_multimappers {
     path bam
 
   output:
-    path "${bam.simpleName}.nomulti.bam"
+    tuple path("${bam.simpleName}.nomulti.bam"),
+          path("${bam.simpleName}.nomulti.bam.bai")
 
   script:
   """
@@ -26,6 +27,7 @@ process filter_multimappers {
   """
 }
 
+
 process filter_blacklist {
   tag "${bam.simpleName}"
   stageInMode  'symlink'
@@ -34,13 +36,14 @@ process filter_blacklist {
   publishDir "${params.project_folder}/${chipfilter_output}", mode: 'copy'
 
   input:
-    path bam
+    tuple path(bam), path(bai) 
 
   output:
-    path "${bam.simpleName}.noblack.bam"
+    tuple path("${bam.simpleName}.noblack.bam"),
+          path("${bam.simpleName}.noblack.bam.bai")
 
   when:
-    params.blacklist_bed  
+    params.blacklist_bed
 
   script:
   """
@@ -59,20 +62,23 @@ process remove_mito {
   publishDir "${params.project_folder}/${chipfilter_output}", mode: 'copy'
 
   input:
-    path bam
+    tuple path(bam), path(bai)
 
   output:
-    path "${bam.simpleName}.clean.bam"
+    tuple path("${bam.simpleName}.clean.bam"),
+          path("${bam.simpleName}.clean.bam.bai")
 
   script:
   """
   set -eux
 
   keep_chrs=\$(samtools idxstats ${bam} | cut -f1 | egrep -v '^(chrM|MT|\\*)\$' | tr '\\n' ' ')
+
   samtools view -b ${bam} \$keep_chrs > ${bam.simpleName}.clean.bam
   samtools index ${bam.simpleName}.clean.bam
   """
 }
+
 
 workflow {
 

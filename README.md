@@ -19,56 +19,24 @@ Filtering order:
 ## Output
 
 Under `${project_folder}/${chipfilter_output}`:
-- intermediate:
-  - `${sample}.nomulti.bam` + `.bai`
-  - `${sample}.noblack.bam` + `.bai` (if blacklist enabled)
-- final:
-  - `${sample}.clean.bam`
-  - `${sample}.clean.bam.bai`
+- `${sample}.nomulti.bam` + `.bai`
+- `${sample}.noblack.bam` + `.bai` (if blacklist enabled)
+- `${sample}.clean.bam` + `.bai`
 
 ## Key Parameters
 
 - `chipfilter_raw_bam`: input BAM folder (usually `nf-picard/picard_output`)
 - `chipfilter_output`: output folder name
 - `prefer_dedup`: prefer dedup BAM as input (default: `true`)
-- `mapq_threshold`: MAPQ filter cutoff (default: `10`)
+- `mapq_threshold`: MAPQ filter cutoff (default: `29`, aligned to colleague script `>28`)
 - `blacklist_bed`: BED file for genomic blacklist filtering (optional)
 
 ## Run
 
 ```bash
-nextflow run main.nf -profile local
-```
-
-```bash
 nextflow run main.nf -profile hpc
 ```
 
-Example with custom MAPQ and blacklist:
-
 ```bash
-nextflow run main.nf -profile hpc \
-  --mapq_threshold 30 \
-  --blacklist_bed /path/to/blacklist.bed
-```
-
-Resume:
-
-```bash
-nextflow run main.nf -profile hpc -resume
-```
-
-## Notes
-
-- This module does not perform duplicate marking/removal by itself.
-- Duplicate strategy is handled upstream in `nf-picard`.
-
-## Project Structure
-
-```text
-main.nf
-nextflow.config
-configs/
-  local.config
-  slurm.config
+nextflow run main.nf -profile hpc --mapq_threshold 30 --blacklist_bed /path/to/blacklist.bed
 ```

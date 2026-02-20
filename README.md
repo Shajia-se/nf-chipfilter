@@ -1,91 +1,74 @@
 # nf-chipfilter
 
-A simple, portable BAM-filtering pipeline using Nextflow.
-Designed to clean **markdup BAMs** (e.g., from nf-picard) for downstream ChIP-seq / ATAC-seq / RNA-seq analysis.
+`nf-chipfilter` is a Nextflow DSL2 module for post-alignment BAM filtering in ChIP-seq workflows.
 
----
+## What This Module Does
 
-## 🎯 What this pipeline does
+Filtering order:
+1. Remove low-confidence / multi-mapping reads using MAPQ threshold (`samtools view -q`).
+2. Optionally remove reads overlapping blacklist regions (`bedtools intersect -v`).
+3. Remove mitochondrial reads (`chrM` / `MT`).
 
-Runs **three standardized BAM-cleaning steps**:
+## Input
 
-### 1) Remove multimappers
+- Directory: `params.chipfilter_raw_bam`
+- Input preference:
+  - if `prefer_dedup=true` (default): use `*.dedup.bam`, fallback to `*.markdup.bam`
+  - if `prefer_dedup=false`: use `*.markdup.bam`, fallback to `*.dedup.bam`
 
-Uses **MAPQ filtering** (default MAPQ ≥ 10):
+## Output
 
-```
-samtools view -b -q 10
-```
+Under `${project_folder}/${chipfilter_output}`:
+- intermediate:
+  - `${sample}.nomulti.bam` + `.bai`
+  - `${sample}.noblack.bam` + `.bai` (if blacklist enabled)
+- final:
+  - `${sample}.clean.bam`
+  - `${sample}.clean.bam.bai`
 
-### 2) Remove blacklist regions
+## Key Parameters
 
-Uses **bedtools intersect -v** to exclude ENCODE blacklist peaks:
+- `chipfilter_raw_bam`: input BAM folder (usually `nf-picard/picard_output`)
+- `chipfilter_output`: output folder name
+- `prefer_dedup`: prefer dedup BAM as input (default: `true`)
+- `mapq_threshold`: MAPQ filter cutoff (default: `10`)
+- `blacklist_bed`: BED file for genomic blacklist filtering (optional)
 
-```
-bedtools intersect -v -abam input.bam -b blacklist.bed
-```
-
-### 3) Remove mitochondrial reads
-
-Keeps only non-mitochondrial chromosomes (e.g., chrM / MT removed):
-
-```
-samtools idxstats | grep -v "chrM"
-samtools view -b input.bam <non-mito chr list>
-```
-
-Produces a final cleaned BAM ready for MACS2/3 peak calling.
-
----
-
-## 🚀 Run on HPC (Slurm + Singularity)
+## Run
 
 ```bash
-nextflow run main.nf -profile hpc 
+nextflow run main.nf -profile local
 ```
 
-* Singularity image, e.g.:
-
-```
-singularity pull samtools-bedtools.sif docker://shajiase/samtools-bedtools:1.0
+```bash
+nextflow run main.nf -profile hpc
 ```
 
----
+Example with custom MAPQ and blacklist:
 
-Each BAM passes through:
-
-1. SAMPLE.nomulti.bam
-2. SAMPLE.noblack.bam (only if a blacklist is provided)
-3. SAMPLE.clean.bam ← **final cleaned BAM**
-
-Final deliverables:
-
-* `SAMPLE.clean.bam`
-* `SAMPLE.clean.bam.bai`
-
-Used for downstream peak calling (MACS2 / MACS3) or coverage tracks.
-
----
-
-## 📂 Project structure
-
-```
-nf-chipfilter/
-├── main.nf
-├── nextflow.config
-└── configs/
-    ├── local.config
-    └── slurm.config
+```bash
+nextflow run main.nf -profile hpc \
+  --mapq_threshold 30 \
+  --blacklist_bed /path/to/blacklist.bed
 ```
 
----
+Resume:
 
-## ✔️ Summary
+```bash
+nextflow run main.nf -profile hpc -resume
+```
 
-This pipeline provides:
+## Notes
 
-* Multi-mapper removal
-* Blacklist removal
-* Mitochondrial read removal
-* Fully standardized clean BAM output
-* Compatible with nf-bwa → nf-picard → nf-chipfilter → MACS2/3 analysis chain
+- This module does not perform duplicate marking/removal by itself.
+- Duplicate strategy is handled upstream in `nf-picard`.
+
+## Project Structure
+
+```text
+main.nf
+nextflow.config
+configs/
+  local.config
+  slurm.config
+```

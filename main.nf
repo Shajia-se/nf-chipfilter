@@ -83,9 +83,14 @@ process remove_mito {
 workflow {
 
   def outdir = "${params.project_folder}/${chipfilter_output}"
+  def prefer_dedup = (params.prefer_dedup == null) ? true : params.prefer_dedup
 
-  Channel
-    .fromPath("${params.chipfilter_raw_bam}/*.markdup.bam")
+  def dedup_ch = Channel.fromPath("${params.chipfilter_raw_bam}/*.dedup.bam")
+  def markdup_ch = Channel.fromPath("${params.chipfilter_raw_bam}/*.markdup.bam")
+  def source_bam_ch = prefer_dedup ? dedup_ch.ifEmpty { markdup_ch } : markdup_ch.ifEmpty { dedup_ch }
+
+  source_bam_ch
+    .ifEmpty { exit 1, "ERROR: No input BAM found (*.dedup.bam or *.markdup.bam) under: ${params.chipfilter_raw_bam}" }
     .filter { bam ->
       ! file("${outdir}/${bam.simpleName}.clean.bam.bai").exists()
     }

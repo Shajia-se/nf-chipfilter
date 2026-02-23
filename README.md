@@ -12,6 +12,7 @@ Filtering order:
 ## Input
 
 - Directory: `params.chipfilter_raw_bam`
+- Optional: `params.samples_master` (CSV with `sample_id`, optional `enabled`) to restrict which samples are processed
 - Input preference:
   - if `prefer_dedup=true` (default): use `*.dedup.bam`, fallback to `*.markdup.bam`
   - if `prefer_dedup=false`: use `*.markdup.bam`, fallback to `*.dedup.bam`
@@ -26,9 +27,10 @@ Under `${project_folder}/${chipfilter_output}`:
 ## Key Parameters
 
 - `chipfilter_raw_bam`: input BAM folder (usually `nf-picard/picard_output`)
+- `samples_master`: optional sample whitelist source
 - `chipfilter_output`: output folder name
 - `prefer_dedup`: prefer dedup BAM as input (default: `true`)
-- `mapq_threshold`: MAPQ filter cutoff (default: `29`, aligned to colleague script `>28`)
+- `mapq_threshold`: MAPQ filter cutoff (default: `4`)
 - `blacklist_bed`: BED file for genomic blacklist filtering (optional)
 
 ## Run
@@ -38,5 +40,14 @@ nextflow run main.nf -profile hpc
 ```
 
 ```bash
-nextflow run main.nf -profile hpc --mapq_threshold 30 --blacklist_bed /path/to/blacklist.bed
+nextflow run main.nf -profile hpc --mapq_threshold 4 --blacklist_bed /path/to/blacklist.bed
+```
+
+With sample restriction:
+
+```bash
+nextflow run main.nf -profile hpc \
+  --chipfilter_raw_bam /path/to/nf-picard/picard_output \
+  --samples_master /path/to/samples_master.csv \
+  --mapq_threshold 4
 ```

@@ -85,6 +85,9 @@ workflow {
   def outdir = "${params.project_folder}/${chipfilter_output}"
   def prefer_dedup = (params.prefer_dedup == null) ? true : params.prefer_dedup
   def selectedSamples = null as Set
+  def sampleMatches = { name, sid ->
+    name == sid || name.startsWith("${sid}_")
+  }
 
   def dedup_ch = Channel.fromPath("${params.chipfilter_raw_bam}/*.dedup.bam")
   def markdup_ch = Channel.fromPath("${params.chipfilter_raw_bam}/*.markdup.bam")
@@ -117,7 +120,7 @@ workflow {
     .filter { bam ->
       if (selectedSamples == null) return true
       def sid = bam.simpleName.replaceFirst(/(?:\.sorted)?\.(dedup|markdup)$/, '')
-      selectedSamples.contains(sid)
+      selectedSamples.any { wanted -> sampleMatches(sid, wanted as String) }
     }
     .filter { bam ->
       ! file("${outdir}/${bam.simpleName}.clean.bam.bai").exists()

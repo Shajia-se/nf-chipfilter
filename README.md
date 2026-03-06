@@ -31,7 +31,7 @@ Under `${project_folder}/${chipfilter_output}`:
 - `chipfilter_output`: output folder name
 - `prefer_dedup`: prefer dedup BAM as input (default: `true`)
 - `mapq_threshold`: MAPQ filter cutoff (default: `4`)
-- `blacklist_bed`: BED file for genomic blacklist filtering (optional)
+- `blacklist_bed`: BED file for genomic blacklist filtering (optional, default: disabled)
 
 ## Run
 

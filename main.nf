@@ -28,32 +28,6 @@ process filter_multimappers {
 }
 
 
-process filter_blacklist {
-  tag "${bam.simpleName}"
-  stageInMode  'symlink'
-  stageOutMode 'move'
-
-  publishDir "${params.project_folder}/${chipfilter_output}", mode: 'copy'
-
-  input:
-    tuple path(bam), path(bai) 
-
-  output:
-    tuple path("${bam.simpleName}.noblack.bam"),
-          path("${bam.simpleName}.noblack.bam.bai")
-
-  when:
-    params.blacklist_bed
-
-  script:
-  """
-  set -eux
-
-  bedtools intersect -v -abam ${bam} -b ${params.blacklist_bed} > ${bam.simpleName}.noblack.bam
-  samtools index ${bam.simpleName}.noblack.bam
-  """
-}
-
 process remove_mito {
   tag "${bam.simpleName}"
   stageInMode  'symlink'
@@ -128,8 +102,5 @@ workflow {
     .set { bam_ch }
 
   def nomulti_ch = filter_multimappers(bam_ch)
-
-  def noblack_ch = params.blacklist_bed ? filter_blacklist(nomulti_ch) : nomulti_ch
-
-  remove_mito(noblack_ch)
+  remove_mito(nomulti_ch)
 }

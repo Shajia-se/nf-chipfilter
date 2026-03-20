@@ -6,8 +6,7 @@
 
 Filtering order:
 1. Remove low-confidence / multi-mapping reads using MAPQ threshold (`samtools view -q`).
-2. Optionally remove reads overlapping blacklist regions (`bedtools intersect -v`).
-3. Remove mitochondrial reads (`chrM` / `MT`).
+2. Remove mitochondrial reads (`chrM` / `MT`).
 
 ## Input
 
@@ -21,7 +20,6 @@ Filtering order:
 
 Under `${project_folder}/${chipfilter_output}`:
 - `${sample}.nomulti.bam` + `.bai`
-- `${sample}.noblack.bam` + `.bai` (if blacklist enabled)
 - `${sample}.clean.bam` + `.bai`
 
 ## Key Parameters
@@ -31,16 +29,11 @@ Under `${project_folder}/${chipfilter_output}`:
 - `chipfilter_output`: output folder name
 - `prefer_dedup`: prefer dedup BAM as input (default: `true`)
 - `mapq_threshold`: MAPQ filter cutoff (default: `4`)
-- `blacklist_bed`: BED file for genomic blacklist filtering (optional, default: disabled)
 
 ## Run
 
 ```bash
 nextflow run main.nf -profile hpc
-```
-
-```bash
-nextflow run main.nf -profile hpc --mapq_threshold 4 --blacklist_bed /path/to/blacklist.bed
 ```
 
 With sample restriction:

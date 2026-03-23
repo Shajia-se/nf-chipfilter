@@ -39,17 +39,31 @@ process remove_mito {
     tuple path(bam), path(bai)
 
   output:
-    tuple path("${bam.simpleName}.clean.bam"),
-          path("${bam.simpleName}.clean.bam.bai")
+    tuple path("*.clean.bam"),
+          path("*.clean.bam.bai"),
+          path("*.chipfilter.stats.tsv")
 
   script:
+  def sample_base = bam.simpleName.replaceFirst(/\.nomulti$/, '')
   """
   set -eux
 
+  nomulti_reads=\$(samtools view -c -F 260 ${bam})
   keep_chrs=\$(samtools idxstats ${bam} | cut -f1 | egrep -v '^(chrM|MT|\\*)\$' | tr '\\n' ' ')
 
-  samtools view -b ${bam} \$keep_chrs > ${bam.simpleName}.clean.bam
-  samtools index ${bam.simpleName}.clean.bam
+  samtools view -b ${bam} \$keep_chrs > ${sample_base}.clean.bam
+  samtools index ${sample_base}.clean.bam
+  clean_reads=\$(samtools view -c -F 260 ${sample_base}.clean.bam)
+
+  pct_retained=NA
+  if [[ "\$nomulti_reads" -gt 0 ]]; then
+    pct_retained=\$(awk -v a="\$clean_reads" -v b="\$nomulti_reads" 'BEGIN{printf "%.2f", (a/b)*100}')
+  fi
+
+  cat > ${sample_base}.chipfilter.stats.tsv << TSV
+sample_id	mapq_threshold	nomulti_reads	clean_reads	pct_retained_after_mito
+${sample_base}	${MAPQ}	\$nomulti_reads	\$clean_reads	\$pct_retained
+TSV
   """
 }
 

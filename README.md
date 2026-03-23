@@ -21,6 +21,14 @@ Filtering order:
 Under `${project_folder}/${chipfilter_output}`:
 - `${sample}.nomulti.bam` + `.bai`
 - `${sample}.clean.bam` + `.bai`
+- `${sample}.chipfilter.stats.tsv`
+
+`chipfilter.stats.tsv` contains:
+- `sample_id`
+- `mapq_threshold`
+- `nomulti_reads`
+- `clean_reads`
+- `pct_retained_after_mito`
 
 ## Key Parameters
 

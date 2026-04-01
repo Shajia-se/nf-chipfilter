@@ -2,7 +2,7 @@
 nextflow.enable.dsl=2
 
 def chipfilter_output = params.chipfilter_output ?: "chipfilter_output"
-def MAPQ             = params.mapq_threshold   ?: 4
+def MAPQ             = params.mapq_threshold   ?: 24
 
 process filter_multimappers {
   tag "${bam.simpleName}"

@@ -36,7 +36,7 @@ Under `${project_folder}/${chipfilter_output}`:
 - `samples_master`: optional sample whitelist source
 - `chipfilter_output`: output folder name
 - `prefer_dedup`: prefer dedup BAM as input (default: `true`)
-- `mapq_threshold`: MAPQ filter cutoff (default: `4`)
+- `mapq_threshold`: MAPQ filter cutoff (default: `24`)
 
 ## Run
 
@@ -50,5 +50,5 @@ With sample restriction:
 nextflow run main.nf -profile hpc \
   --chipfilter_raw_bam /path/to/nf-picard/picard_output \
   --samples_master /path/to/samples_master.csv \
-  --mapq_threshold 4
+  --mapq_threshold 24
 ```

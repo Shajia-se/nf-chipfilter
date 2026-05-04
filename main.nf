@@ -28,7 +28,7 @@ process filter_multimappers {
 }
 
 
-process remove_mito {
+process mito_stats {
   tag "${bam.simpleName}"
   stageInMode  'symlink'
   stageOutMode 'move'
@@ -39,9 +39,7 @@ process remove_mito {
     tuple path(bam), path(bai)
 
   output:
-    tuple path("*.clean.bam"),
-          path("*.clean.bam.bai"),
-          path("*.chipfilter.stats.tsv")
+    path("*.chipfilter.stats.tsv")
 
   script:
   def sample_base = bam.simpleName.replaceFirst(/\.nomulti$/, '')
@@ -49,20 +47,17 @@ process remove_mito {
   set -eux
 
   nomulti_reads=\$(samtools view -c -F 260 ${bam})
-  keep_chrs=\$(samtools idxstats ${bam} | cut -f1 | egrep -v '^(chrM|MT|\\*)\$' | tr '\\n' ' ')
+  mito_reads=\$(samtools idxstats ${bam} | awk '\$1 == "chrM" || \$1 == "MT" {sum += \$3} END{print sum+0}')
+  clean_reads_estimated=\$(( nomulti_reads - mito_reads ))
 
-  samtools view -b ${bam} \$keep_chrs > ${sample_base}.clean.bam
-  samtools index ${sample_base}.clean.bam
-  clean_reads=\$(samtools view -c -F 260 ${sample_base}.clean.bam)
-
-  pct_retained=NA
+  pct_mito=NA
   if [[ "\$nomulti_reads" -gt 0 ]]; then
-    pct_retained=\$(awk -v a="\$clean_reads" -v b="\$nomulti_reads" 'BEGIN{printf "%.2f", (a/b)*100}')
+    pct_mito=\$(awk -v a="\$mito_reads" -v b="\$nomulti_reads" 'BEGIN{printf "%.2f", (a/b)*100}')
   fi
 
   cat > ${sample_base}.chipfilter.stats.tsv << TSV
-sample_id	mapq_threshold	nomulti_reads	clean_reads	pct_retained_after_mito
-${sample_base}	${MAPQ}	\$nomulti_reads	\$clean_reads	\$pct_retained
+sample_id	mapq_threshold	nomulti_reads	mito_reads	pct_mito	clean_reads_estimated
+${sample_base}	${MAPQ}	\$nomulti_reads	\$mito_reads	\$pct_mito	\$clean_reads_estimated
 TSV
   """
 }
@@ -111,10 +106,11 @@ workflow {
       selectedSamples.any { wanted -> sampleMatches(sid, wanted as String) }
     }
     .filter { bam ->
-      ! file("${outdir}/${bam.simpleName}.clean.bam.bai").exists()
+      !file("${outdir}/${bam.simpleName}.nomulti.bam.bai").exists() ||
+      !file("${outdir}/${bam.simpleName.replaceFirst(/\\.nomulti$/, '')}.chipfilter.stats.tsv").exists()
     }
     .set { bam_ch }
 
   def nomulti_ch = filter_multimappers(bam_ch)
-  remove_mito(nomulti_ch)
+  mito_stats(nomulti_ch)
 }

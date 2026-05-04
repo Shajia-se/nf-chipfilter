@@ -6,7 +6,7 @@
 
 Filtering order:
 1. Remove low-confidence / multi-mapping reads using MAPQ threshold (`samtools view -q`).
-2. Remove mitochondrial reads (`chrM` / `MT`).
+2. Record mitochondrial read burden from the MAPQ-filtered BAM without rewriting a second BAM.
 
 ## Input
 
@@ -20,15 +20,15 @@ Filtering order:
 
 Under `${project_folder}/${chipfilter_output}`:
 - `${sample}.nomulti.bam` + `.bai`
-- `${sample}.clean.bam` + `.bai`
 - `${sample}.chipfilter.stats.tsv`
 
 `chipfilter.stats.tsv` contains:
 - `sample_id`
 - `mapq_threshold`
 - `nomulti_reads`
-- `clean_reads`
-- `pct_retained_after_mito`
+- `mito_reads`
+- `pct_mito`
+- `clean_reads_estimated`
 
 ## Key Parameters
 

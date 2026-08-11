@@ -65,6 +65,10 @@ TSV
 
 workflow {
 
+  if (!params.chipfilter_raw_bam) {
+    exit 1, "ERROR: --chipfilter_raw_bam must be provided. This should usually be the nf-picard output folder."
+  }
+
   def outdir = "${params.project_folder}/${chipfilter_output}"
   def prefer_dedup = (params.prefer_dedup == null) ? true : params.prefer_dedup
   def selectedSamples = null as Set
@@ -81,20 +85,26 @@ workflow {
     assert master.exists() : "samples_master not found: ${params.samples_master}"
 
     selectedSamples = [] as Set
-    master.eachLine { line, n ->
-      if (n == 1) return
-      if (!line?.trim()) return
-      def cols = line.split(',', -1)*.trim()
-      if (cols.size() < 1) return
+    master
+      .readLines()
+      .findAll { it?.trim() }
+      .with { lines ->
+        def header = lines[0].split(',', -1)*.trim()
+        def sampleIdx = header.indexOf('sample_id')
+        def enabledIdx = header.indexOf('enabled')
+        assert sampleIdx >= 0 : "samples_master must contain a sample_id column: ${params.samples_master}"
 
-      def sid = cols[0]
-      if (!sid) return
-
-      def enabled = cols.size() > 10 ? cols[10]?.toLowerCase() : ''
-      if (enabled == '' || enabled == 'true') {
-        selectedSamples << sid
+        lines.drop(1).each { line ->
+          def cols = line.split(',', -1)*.trim()
+          def sid = cols.size() > sampleIdx ? cols[sampleIdx] : ''
+          if (sid) {
+            def enabled = enabledIdx >= 0 && cols.size() > enabledIdx ? cols[enabledIdx]?.toLowerCase() : ''
+            if (enabled == '' || enabled == 'true') {
+              selectedSamples << sid
+            }
+          }
+        }
       }
-    }
     assert !selectedSamples.isEmpty() : "No enabled sample_id found in samples_master: ${params.samples_master}"
   }
 
@@ -106,6 +116,7 @@ workflow {
       selectedSamples.any { wanted -> sampleMatches(sid, wanted as String) }
     }
     .filter { bam ->
+      !file("${outdir}/${bam.simpleName}.nomulti.bam").exists() ||
       !file("${outdir}/${bam.simpleName}.nomulti.bam.bai").exists() ||
       !file("${outdir}/${bam.simpleName.replaceFirst(/\\.nomulti$/, '')}.chipfilter.stats.tsv").exists()
     }
